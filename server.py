@@ -1,4 +1,6 @@
-    import os
+import os
+import csv
+import json
 import errno
 import signal
 import socket
@@ -10,6 +12,44 @@ BACKLOG = 5
 PIDS = []
 # tmp = 0
 
+BYTES_READ = 3000
+
+def user_already_exists(username):
+    with open('./server_resources/user_pass.csv') as csvfile:
+        fieldnames = ['username', 'password']
+        reader = csv.DictReader(csvfile, fieldnames=fieldnames)
+        exists = False
+        for row in reader:
+            if row['username'] == username :
+                exists = True
+                break
+    return exists
+
+def add_user(username, password):
+    with open('./server_resources/user_pass.csv', 'a') as csvfile:
+        fieldnames = ['username', 'password']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writerow({'username': username, 'password': password})
+
+def signup_server(sock, data):
+    username = data['username']
+    password = data['password']
+    if user_already_exists(username):
+        dict_to_send = {
+            'status': 0,
+            'message': 'username already exists'
+        }
+        dict_to_send = json.dumps(dict_to_send)
+        sock.sendall(dict_to_send)
+    else:
+        add_user(username, password)
+        dict_to_send = {
+            'status': 1,
+            'message': 'user successfully registered'
+        }
+        dict_to_send = json.dumps(dict_to_send)
+        sock.sendall(dict_to_send)
+
 def handle(sock):
     # read a line that tells us how many bytes to write back
 
@@ -17,15 +57,17 @@ def handle(sock):
     while flag:
         try:
             # print("SOCK: ", sock.getpeername())
-            data = sock.recv(1024)
-
-            print 'Got request to send %d bytes. Sending them all...' % bytes
-            # send them all
-            sock.sendall(data)
+            data = sock.recv(BYTES_READ)
+            data = json.loads(data)
+            print("data: ", data)
+            if data['operation'] == 1 :
+                signup_server(sock, data)
+            flag = False
         except IOError as e:
             print("TEST: ", e)
             flag = False
             sock.close()
+        sock.close()
 
 
 def child_loop(index, listen_sock):
