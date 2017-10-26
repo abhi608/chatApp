@@ -15,6 +15,8 @@ PIDS = []
 # tmp = 0
 
 BYTES_READ = 3000
+BLOCK_ATTEMPTS = 3
+TMP_BLOCK_TIME = 60 #sec
 
 user_info = {}
 
@@ -60,7 +62,7 @@ def is_user_blocked_tmp(username):
         if user_info[username]['blocked'] :
             time_elapsed = datetime.datetime.now() - user_info[username]['block_time'] #revisit this
             time_elapsed = time_elapsed.seconds
-            if time_elapsed <= 60 : #revisit this
+            if time_elapsed <= TMP_BLOCK_TIME : #revisit this
                 return True
             else :
                 user_info[username]['blocked'] = False
@@ -129,7 +131,7 @@ def login_server(sock, data):
                 if 'invalid_attempt_count' in user_info[username] : # handy when client presses Ctrl+C
                     #TODO
                     user_info[username]['invalid_attempt_count'] += 1
-                    if user_info[username]['invalid_attempt_count'] == 3:
+                    if user_info[username]['invalid_attempt_count'] == BLOCK_ATTEMPTS :
                         user_info[username]['blocked'] = True
                         user_info[username]['block_time'] = datetime.datetime.now()
                         user_info[username]['invalid_attempt_count'] = 0
@@ -182,14 +184,20 @@ def handle(sock):
             # sock.sendall(data)
             print("SOCK: ", sock.getpeername())
             data = sock.recv(BYTES_READ)
-            data = json.loads(data)
-            print("data: ", data)
-            if data['operation'] == 1 :
-                signup_server(sock, data)
-            elif data['operation'] == 2 :
-                login_server(sock, data)
-                print("user_information: ", user_info)
-            flag = False
+            try:
+                data = json.loads(data)
+                print("data: ", data)
+                if data['operation'] == 1 :
+                    signup_server(sock, data)
+                elif data['operation'] == 2 :
+                    login_server(sock, data)
+                    print("user_information: ", user_info)
+                flag = False
+
+            except:
+                print("Client malfunctioned")
+                flag = False
+            
         except IOError as e:
             print("TEST: ", e)
             flag = False

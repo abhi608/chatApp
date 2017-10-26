@@ -48,6 +48,13 @@ def login_client(sock, operation_selected):
     else:
         print('Operation succeeded with following message from server: %s' %data['message'])
 
+def is_integer(operation):
+    try: 
+        int(operation)
+        return True
+    except ValueError:
+        return False
+
 def request(host, port, child_num, con_num, bytes):
     # spawn child_num children processes
     for cnum in range(child_num):
@@ -67,17 +74,21 @@ def request(host, port, child_num, con_num, bytes):
                     # data = sock.recv(BYTES_READ)
                     # print data
                     print("Enter operation number")
-                    operation_selected=int(raw_input())
-                    if operation_selected == 0:
-                        print_operation()
-                    elif operation_selected == 1:
-                        signup_client(sock, operation_selected)
-                        flag = False
-                    elif operation_selected == 2:
-                        login_client(sock, operation_selected)
-                        flag = False
+                    operation_selected = raw_input()
+                    if is_integer(operation_selected) :
+                        operation_selected = int(operation_selected)
+                        if operation_selected == 0:
+                            print_operation()
+                        elif operation_selected == 1:
+                            signup_client(sock, operation_selected)
+                            flag = False
+                        elif operation_selected == 2:
+                            login_client(sock, operation_selected)
+                            flag = False
+                        else:
+                            print("Please enter a valid operation number")
                     else:
-                        print("Please enter a valid operation number")
+                        print("Please enter a valid integer")
 
                 sock.close() # TIME_WAIT state on the client
 
