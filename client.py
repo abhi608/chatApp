@@ -10,12 +10,31 @@ BYTES_READ = 3000
 def print_operation():
     print("0 | List of options")
     print("1 | Sign up")
+    print("2 | Log in")
 
-def signup_client(sock, option_selected):
+def signup_client(sock, operation_selected):
     username=raw_input('Enter username: ')
     password = raw_input('Enter password: ')
     dict_to_send = {
-        'operation': option_selected,
+        'operation': operation_selected,
+        'username': username,
+        'password': password
+    }
+    dict_to_send = json.dumps(dict_to_send)
+    sock.sendall(dict_to_send)
+    data = sock.recv(BYTES_READ)
+    data = json.loads(data)
+    print("data: ", data)
+    if data['status'] == 0 :
+        print('Your operation failed with following message from server: %s' %data['message'])
+    else:
+        print('Operation succeeded with following message from server: %s' %data['message'])
+
+def login_client(sock, operation_selected):
+    username=raw_input('Enter username: ')
+    password = raw_input('Enter password: ')
+    dict_to_send = {
+        'operation': operation_selected,
         'username': username,
         'password': password
     }
@@ -44,6 +63,9 @@ def request(host, port, child_num, con_num, bytes):
                 flag = True
                 print_operation();
                 while flag:
+                    # sock.sendall("test2")
+                    # data = sock.recv(BYTES_READ)
+                    # print data
                     print("Enter operation number")
                     operation_selected=int(raw_input())
                     if operation_selected == 0:
@@ -51,16 +73,11 @@ def request(host, port, child_num, con_num, bytes):
                     elif operation_selected == 1:
                         signup_client(sock, operation_selected)
                         flag = False
+                    elif operation_selected == 2:
+                        login_client(sock, operation_selected)
+                        flag = False
                     else:
                         print("Please enter a valid operation number")
-
-
-                    # sock.sendall('client')
-                    # data = sock.recv(bytes)
-                    # print("Received data: ", data)
-                    # # if len(data) != bytes:
-                    # #     raise Exception('Server returned only %d bytes' % len(data))
-                    # count += 1
 
                 sock.close() # TIME_WAIT state on the client
 
