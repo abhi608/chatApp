@@ -11,6 +11,7 @@ def print_operation():
     print("0 | List of options")
     print("1 | Sign up")
     print("2 | Log in")
+    print("3 | Log out")
 
 def signup_client(sock, operation_selected):
     username=raw_input('Enter username: ')
@@ -24,7 +25,6 @@ def signup_client(sock, operation_selected):
     sock.sendall(dict_to_send)
     data = sock.recv(BYTES_READ)
     data = json.loads(data)
-    print("data: ", data)
     if data['status'] == 0 :
         print('Your operation failed with following message from server: %s' %data['message'])
     else:
@@ -42,7 +42,19 @@ def login_client(sock, operation_selected):
     sock.sendall(dict_to_send)
     data = sock.recv(BYTES_READ)
     data = json.loads(data)
-    print("data: ", data)
+    if data['status'] == 0 :
+        print('Your operation failed with following message from server: %s' %data['message'])
+    else:
+        print('Operation succeeded with following message from server: %s' %data['message'])
+
+def logout_client(sock, operation_selected) :
+    dict_to_send = {
+        'operation': operation_selected,
+    }
+    dict_to_send = json.dumps(dict_to_send)
+    sock.sendall(dict_to_send)
+    data = sock.recv(BYTES_READ)
+    data = json.loads(data)
     if data['status'] == 0 :
         print('Your operation failed with following message from server: %s' %data['message'])
     else:
@@ -70,9 +82,6 @@ def request(host, port, child_num, con_num, bytes):
                 flag = True
                 print_operation();
                 while flag:
-                    # sock.sendall("test2")
-                    # data = sock.recv(BYTES_READ)
-                    # print data
                     print("Enter operation number")
                     operation_selected = raw_input()
                     if is_integer(operation_selected) :
@@ -81,16 +90,16 @@ def request(host, port, child_num, con_num, bytes):
                             print_operation()
                         elif operation_selected == 1:
                             signup_client(sock, operation_selected)
-                            flag = False
                         elif operation_selected == 2:
                             login_client(sock, operation_selected)
+                        elif operation_selected == 3:
+                            logout_client(sock, operation_selected)
+                            sock.close()
                             flag = False
                         else:
                             print("Please enter a valid operation number")
                     else:
                         print("Please enter a valid integer")
-
-                sock.close() # TIME_WAIT state on the client
 
             print 'Child %d is done' % cnum
             os._exit(0)
