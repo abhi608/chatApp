@@ -221,6 +221,42 @@ def logout_server(sock) :
     sock.sendall(dict_to_send)
     sock.close()
 
+def is_user_logged_in(sock):
+    for i in user_info :
+        if 'id' in user_info[i] :
+            print("TEST")
+            if user_info[i]['id'][0] == sock.getpeername()[0] and user_info[i]['id'][1] == sock.getpeername()[1] :
+                print("TEST-2")
+                return True
+    return False
+
+def get_all_users_online():
+    users_online = []
+    for i in user_info :
+        if 'online' in user_info[i] :
+            if user_info[i]['online'] :
+                users_online.append(i)
+    return users_online
+
+def users_online_server(sock) :
+    if is_user_logged_in(sock) :
+        users_online = get_all_users_online() #array
+        dict_to_send = {
+            'status': 1,
+            'message': str(users_online)
+        }
+        dict_to_send = json.dumps(dict_to_send)
+        sock.sendall(dict_to_send)
+    else :
+        print("TEST3")
+        dict_to_send = {
+            'status': 0,
+            'message': 'you are not logged in'
+        }
+        dict_to_send = json.dumps(dict_to_send)
+        sock.sendall(dict_to_send)
+        
+
 
 def handle(sock):
     # read a line that tells us how many bytes to write back
@@ -241,6 +277,8 @@ def handle(sock):
                     logout_server(sock)
                     print("user_info after logout: ", user_info)
                     flag = False
+                elif data['operation'] == 4 :
+                    users_online_server(sock)
 
             except:
                 print("Client malfunctioned. Logging out client: ", sock.getpeername())

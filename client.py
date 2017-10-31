@@ -12,6 +12,7 @@ def print_operation():
     print("1 | Sign up")
     print("2 | Log in")
     print("3 | Log out")
+    print("4 | Who all are online")
 
 def signup_client(sock, operation_selected):
     username=raw_input('Enter username: ')
@@ -60,12 +61,26 @@ def logout_client(sock, operation_selected) :
     else:
         print('Operation succeeded with following message from server: %s' %data['message'])
 
+def users_online_client(sock, operation_selected):
+    dict_to_send = {
+        'operation': operation_selected,
+    }
+    dict_to_send = json.dumps(dict_to_send)
+    sock.sendall(dict_to_send)
+    data = sock.recv(BYTES_READ)
+    data = json.loads(data)
+    if data['status'] == 0 :
+        print('Your operation failed with following message from server: %s' %data['message'])
+    else:
+        print('Operation succeeded with following message from server: %s' %data['message'])
+
 def is_integer(operation):
     try: 
         int(operation)
         return True
     except ValueError:
         return False
+
 
 def request(host, port, child_num, con_num, bytes):
     # spawn child_num children processes
@@ -96,6 +111,8 @@ def request(host, port, child_num, con_num, bytes):
                             logout_client(sock, operation_selected)
                             sock.close()
                             flag = False
+                        elif operation_selected == 4:
+                            users_online_client(sock, operation_selected)
                         else:
                             print("Please enter a valid operation number")
                     else:
