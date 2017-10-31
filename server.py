@@ -13,6 +13,7 @@ PIDS = []  # stores pids of all preforked children
 BYTES_READ = 3000
 BLOCK_ATTEMPTS = 3
 TMP_BLOCK_TIME = 60 #sec
+ONLINE_TIME = 60 * 60 #1 hour
 
 user_info = {}
 
@@ -90,6 +91,15 @@ def is_user_auth(username, password):
                 break
     return auth
 
+def username_exists(username):
+    with open('./server_resources/user_pass.csv') as csvfile:
+        fieldnames = ['username', 'password']
+        reader = csv.DictReader(csvfile, fieldnames=fieldnames)
+        for row in reader:
+            if row['username'] == username :
+                return True
+    return False
+
 def ip_port_already_used(sock):
     for i in user_info :
         if 'id' in user_info[i] :
@@ -100,10 +110,17 @@ def ip_port_already_used(sock):
 def login_server(sock, data):
     username = data['username']
     password = data['password']
-    if ip_port_already_used(sock) :
+    if username_exists(username) == False :
         dict_to_send = {
             'status': 0,
-            'message': 'multiple logins not allowed from same IP ans port'
+            'message': 'username does not exist'
+        }
+        dict_to_send = json.dumps(dict_to_send)
+        sock.sendall(dict_to_send)
+    elif ip_port_already_used(sock) :
+        dict_to_send = {
+            'status': 0,
+            'message': 'multiple logins not allowed from same IP and port'
         }
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send)
@@ -224,9 +241,7 @@ def logout_server(sock) :
 def is_user_logged_in(sock):
     for i in user_info :
         if 'id' in user_info[i] :
-            print("TEST")
             if user_info[i]['id'][0] == sock.getpeername()[0] and user_info[i]['id'][1] == sock.getpeername()[1] :
-                print("TEST-2")
                 return True
     return False
 
@@ -236,6 +251,17 @@ def get_all_users_online():
         if 'online' in user_info[i] :
             if user_info[i]['online'] :
                 users_online.append(i)
+    return users_online
+
+def get_last_hour_login():
+    users_online = []
+    for i in user_info :
+        if 'online' in user_info[i] :
+            if user_info[i]['online'] :
+                time_elapsed = datetime.datetime.now() - user_info[i]['login_time']
+                time_elapsed = time_elapsed.seconds
+                if time_elapsed <= ONLINE_TIME :
+                    users_online.append(i)
     return users_online
 
 def users_online_server(sock) :
@@ -248,14 +274,30 @@ def users_online_server(sock) :
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send)
     else :
-        print("TEST3")
         dict_to_send = {
             'status': 0,
             'message': 'you are not logged in'
         }
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send)
-        
+
+def last_hour_login_users_server(sock):
+    if is_user_logged_in(sock) :
+        users_online = get_last_hour_login() #array
+        dict_to_send = {
+            'status': 1,
+            'message': str(users_online)
+        }
+        dict_to_send = json.dumps(dict_to_send)
+        sock.sendall(dict_to_send)
+    else :
+        dict_to_send = {
+            'status': 0,
+            'message': 'you are not logged in'
+        }
+        dict_to_send = json.dumps(dict_to_send)
+        sock.sendall(dict_to_send)
+
 
 
 def handle(sock):
@@ -268,6 +310,7 @@ def handle(sock):
             data = sock.recv(BYTES_READ)
             try:
                 data = json.loads(data)
+                print("Operation: ", data['operation'])
                 if data['operation'] == 1 :
                     signup_server(sock, data)
                 elif data['operation'] == 2 :
@@ -279,6 +322,8 @@ def handle(sock):
                     flag = False
                 elif data['operation'] == 4 :
                     users_online_server(sock)
+                elif data['operation'] == 5 :
+                    last_hour_login_users_server(sock)
 
             except:
                 print("Client malfunctioned. Logging out client: ", sock.getpeername())
