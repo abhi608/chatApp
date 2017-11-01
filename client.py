@@ -3,6 +3,8 @@ import sys
 import json
 import errno
 import socket
+import select
+import fcntl, os
 import optparse
 
 BYTES_READ = 3000
@@ -25,12 +27,6 @@ def signup_client(sock, operation_selected):
     }
     dict_to_send = json.dumps(dict_to_send)
     sock.sendall(dict_to_send)
-    data = sock.recv(BYTES_READ)
-    data = json.loads(data)
-    if data['status'] == 0 :
-        print('Your operation failed with following message from server: %s' %data['message'])
-    else:
-        print('Operation succeeded with following message from server: %s' %data['message'])
 
 def login_client(sock, operation_selected):
     username=raw_input('Enter username: ')
@@ -42,12 +38,6 @@ def login_client(sock, operation_selected):
     }
     dict_to_send = json.dumps(dict_to_send)
     sock.sendall(dict_to_send)
-    data = sock.recv(BYTES_READ)
-    data = json.loads(data)
-    if data['status'] == 0 :
-        print('Your operation failed with following message from server: %s' %data['message'])
-    else:
-        print('Operation succeeded with following message from server: %s' %data['message'])
 
 def logout_client(sock, operation_selected) :
     dict_to_send = {
@@ -55,25 +45,13 @@ def logout_client(sock, operation_selected) :
     }
     dict_to_send = json.dumps(dict_to_send)
     sock.sendall(dict_to_send)
-    data = sock.recv(BYTES_READ)
-    data = json.loads(data)
-    if data['status'] == 0 :
-        print('Your operation failed with following message from server: %s' %data['message'])
-    else:
-        print('Operation succeeded with following message from server: %s' %data['message'])
-
+    
 def users_online_client(sock, operation_selected):
     dict_to_send = {
         'operation': operation_selected,
     }
     dict_to_send = json.dumps(dict_to_send)
     sock.sendall(dict_to_send)
-    data = sock.recv(BYTES_READ)
-    data = json.loads(data)
-    if data['status'] == 0 :
-        print('Your operation failed with following message from server: %s' %data['message'])
-    else:
-        print('Operation succeeded with following message from server: %s' %data['message'])
 
 def last_hour_login_users_client(sock, operation_selected):
     dict_to_send = {
@@ -81,12 +59,6 @@ def last_hour_login_users_client(sock, operation_selected):
     }
     dict_to_send = json.dumps(dict_to_send)
     sock.sendall(dict_to_send)
-    data = sock.recv(BYTES_READ)
-    data = json.loads(data)
-    if data['status'] == 0 :
-        print('Your operation failed with following message from server: %s' %data['message'])
-    else:
-        print('Operation succeeded with following message from server: %s' %data['message'])
 
 def is_integer(operation):
     try: 
@@ -106,35 +78,59 @@ def request(host, port, child_num, con_num, bytes):
             for i in range(con_num):
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.connect((host, port))
-                
-                # 1st time
+                input = [sock, sys.stdin]
                 flag = True
-                print_operation();
+                print_operation()
                 while flag:
                     print("Enter operation number")
-                    operation_selected = raw_input()
-                    if is_integer(operation_selected) :
-                        operation_selected = int(operation_selected)
-                        if operation_selected == 0:
-                            print_operation()
-                        elif operation_selected == 1:
-                            signup_client(sock, operation_selected)
-                        elif operation_selected == 2:
-                            login_client(sock, operation_selected)
-                        elif operation_selected == 3:
-                            logout_client(sock, operation_selected)
-                            sock.close()
+                    inputready, outputready, exceptready = select.select(input, [], [])
+                    for x in inputready:
+                        if x == sock:
+                            data = sock.recv(BYTES_READ)
+                            if data == '' :
+                                flag = False
+                                break
+                            data = data.split("|")
+                            for i in range(0,len(data)-1):
+                                cur_data = json.loads(data[i])
+                                if cur_data['status'] == 0 :
+                                    print('--------------------------------------------------------------------------------')
+                                    print('operation code: ' + str(cur_data['operation']))
+                                    print('operation status: failed')
+                                    print('message: ' + cur_data['message'])
+                                    print('--------------------------------------------------------------------------------')
+                                elif cur_data['status'] == 1 :
+                                    print('--------------------------------------------------------------------------------')
+                                    print('operation code: ' + str(cur_data['operation']))
+                                    print('operation status: success')
+                                    print('message: ' + cur_data['message'])
+                                    print('--------------------------------------------------------------------------------')                          
+                        elif x == sys.stdin:
+                            operation_selected = sys.stdin.readline()
+                            if is_integer(operation_selected) :
+                                operation_selected = int(operation_selected)
+                                if operation_selected == 0:
+                                    print_operation()
+                                elif operation_selected == 1:
+                                    signup_client(sock, operation_selected)
+                                elif operation_selected == 2:
+                                    login_client(sock, operation_selected)
+                                elif operation_selected == 3:
+                                    logout_client(sock, operation_selected)
+                                    sock.close()
+                                    flag = False
+                                elif operation_selected == 4:
+                                    users_online_client(sock, operation_selected)
+                                elif operation_selected == 5:
+                                    last_hour_login_users_client(sock, operation_selected)
+                                else:
+                                    print("Please enter a valid operation number")
+                            else:
+                                print("Please enter a valid integer")
+                        else :
                             flag = False
-                        elif operation_selected == 4:
-                            users_online_client(sock, operation_selected)
-                        elif operation_selected == 5:
-                            last_hour_login_users_client(sock, operation_selected)
-                        else:
-                            print("Please enter a valid operation number")
-                    else:
-                        print("Please enter a valid integer")
 
-            print 'Child %d is done' % cnum
+            print 'Logged out!'
             os._exit(0)
 
     # wait for all children to finish

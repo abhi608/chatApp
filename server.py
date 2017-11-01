@@ -34,31 +34,34 @@ def add_user(username, password):
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writerow({'username': username, 'password': password})
 
-def signup_server(sock, data):
+def signup_server(sock, data, operation):
     username = data['username']
     password = data['password']
     if ip_port_already_used(sock) :
         dict_to_send = {
             'status': 0,
-            'message': 'already logged in'
+            'message': 'already logged in',
+            'operation': operation
         }
         dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+        sock.sendall(dict_to_send+'|')
     elif user_already_exists(username):
         dict_to_send = {
             'status': 0,
-            'message': 'username already exists'
+            'message': 'username already exists',
+            'operation': operation
         }
         dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+        sock.sendall(dict_to_send+'|')
     else:
         add_user(username, password)
         dict_to_send = {
             'status': 1,
-            'message': 'user successfully registered'
+            'message': 'user successfully registered',
+            'operation': operation
         }
         dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+        sock.sendall(dict_to_send+'|')
 
 def is_user_blocked_tmp(sock, username):
     if username in user_info and 'block' in user_info[username] :
@@ -107,37 +110,41 @@ def ip_port_already_used(sock):
                 return True
     return False
 
-def login_server(sock, data):
+def login_server(sock, data, operation):
     username = data['username']
     password = data['password']
     if username_exists(username) == False :
         dict_to_send = {
             'status': 0,
-            'message': 'username does not exist'
+            'message': 'username does not exist',
+            'operation': operation
         }
         dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+        sock.sendall(dict_to_send+'|')
     elif ip_port_already_used(sock) :
         dict_to_send = {
             'status': 0,
-            'message': 'multiple logins not allowed from same IP and port'
+            'message': 'multiple logins not allowed from same IP and port',
+            'operation': operation
         }
         dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+        sock.sendall(dict_to_send+'|')
     elif is_user_blocked_tmp(sock, username) :
         dict_to_send = {
             'status': 0,
-            'message': 'user blocked'
+            'message': 'user blocked',
+            'operation': operation
         }
         dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+        sock.sendall(dict_to_send+'|')
     elif is_user_already_logged(username) :
         dict_to_send = {
             'status': 0,
-            'message': 'user already logged in'
+            'message': 'user already logged in',
+            'operation': operation
         }
         dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+        sock.sendall(dict_to_send+'|')
     else :
         auth = is_user_auth(username, password)
         if auth :
@@ -149,10 +156,11 @@ def login_server(sock, data):
             user_info[username] = obj_to_insert
             dict_to_send = {
                 'status': 1,
-                'message': 'user logged in successfully'
+                'message': 'user logged in successfully',
+                'operation': operation
             }
             dict_to_send = json.dumps(dict_to_send)
-            sock.sendall(dict_to_send)
+            sock.sendall(dict_to_send+'|')
         else:
             if username in user_info :
                 if 'block' in user_info[username] :
@@ -166,17 +174,19 @@ def login_server(sock, data):
                                 user_info[username]['block'][i]['invalid_attempt_count'] = 0
                                 dict_to_send = {
                                     'status': 0,
-                                    'message': 'login unsuccessful! user has been blocked for ' + str(TMP_BLOCK_TIME) + ' seconds'
+                                    'message': 'login unsuccessful! user has been blocked for ' + str(TMP_BLOCK_TIME) + ' seconds',
+                                    'operation': operation
                                 }
                                 dict_to_send = json.dumps(dict_to_send)
-                                sock.sendall(dict_to_send)
+                                sock.sendall(dict_to_send+'|')
                             else :
                                 dict_to_send = {
                                     'status': 0,
-                                    'message': 'login unsuccessful'
+                                    'message': 'login unsuccessful',
+                                    'operation': operation
                                 }
                                 dict_to_send = json.dumps(dict_to_send)
-                                sock.sendall(dict_to_send)
+                                sock.sendall(dict_to_send+'|')
                             is_present = True
                             break
                     if is_present == False :
@@ -187,10 +197,11 @@ def login_server(sock, data):
                         user_info[username]['block'].append(obj_to_insert)
                         dict_to_send = {
                             'status': 0,
-                            'message': 'login unsuccessful'
+                            'message': 'login unsuccessful',
+                            'operation': operation
                         }
                         dict_to_send = json.dumps(dict_to_send)
-                        sock.sendall(dict_to_send)
+                        sock.sendall(dict_to_send+'|')
 
                 else :
                     user_info[username]['block'] = [{
@@ -199,10 +210,11 @@ def login_server(sock, data):
                     }]
                     dict_to_send = {
                         'status': 0,
-                        'message': 'login unsuccessful'
+                        'message': 'login unsuccessful',
+                        'operation': operation
                     }
                     dict_to_send = json.dumps(dict_to_send)
-                    sock.sendall(dict_to_send)
+                    sock.sendall(dict_to_send+'|')
             else :
                 obj_to_insert = {
                     'block' : [{
@@ -213,29 +225,32 @@ def login_server(sock, data):
                 user_info[username] = obj_to_insert
                 dict_to_send = {
                     'status': 0,
-                    'message': 'login unsuccessful'
+                    'message': 'login unsuccessful',
+                    'operation': operation
                 }
                 dict_to_send = json.dumps(dict_to_send)
-                sock.sendall(dict_to_send)
+                sock.sendall(dict_to_send+'|')
 
-def logout_server(sock) :
+def logout_server(sock, operation=-1) :
     for i in user_info :
         if 'id' in user_info[i] :
             if user_info[i]['id'][0] == sock.getpeername()[0] and user_info[i]['id'][1] == sock.getpeername()[1] :
                 user_info.pop(i, None)
                 dict_to_send = {
                     'status': 1,
-                    'message': 'user logged out successfully'
+                    'message': 'user logged out successfully',
+                    'operation': operation
                 }
                 dict_to_send = json.dumps(dict_to_send)
-                sock.sendall(dict_to_send)
+                sock.sendall(dict_to_send+'|')
                 return
     dict_to_send = {
         'status': 0,
-        'message': 'user was not logged in'
+        'message': 'user was not logged in',
+        'operation': operation
     }
     dict_to_send = json.dumps(dict_to_send)
-    sock.sendall(dict_to_send)
+    sock.sendall(dict_to_send+'|')
     sock.close()
 
 def is_user_logged_in(sock):
@@ -264,39 +279,45 @@ def get_last_hour_login():
                     users_online.append(i)
     return users_online
 
-def users_online_server(sock) :
+def users_online_server(sock, operation) :
     if is_user_logged_in(sock) :
         users_online = get_all_users_online() #array
         dict_to_send = {
             'status': 1,
-            'message': str(users_online)
+            'message': str(users_online),
+            'operation': operation
         }
         dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+        sock.sendall(dict_to_send+'|')
+        sock.sendall(dict_to_send+'|')
     else :
         dict_to_send = {
             'status': 0,
-            'message': 'you are not logged in'
+            'message': 'you are not logged in',
+            'operation': operation
         }
         dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+        sock.sendall(dict_to_send+'|')
+        sock.sendall(dict_to_send+'|')
 
-def last_hour_login_users_server(sock):
+def last_hour_login_users_server(sock, operation):
     if is_user_logged_in(sock) :
         users_online = get_last_hour_login() #array
         dict_to_send = {
             'status': 1,
-            'message': str(users_online)
+            'message': str(users_online),
+            'operation': operation
         }
         dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+        sock.sendall(dict_to_send+'|')
     else :
         dict_to_send = {
             'status': 0,
-            'message': 'you are not logged in'
+            'message': 'you are not logged in',
+            'operation': operation
         }
         dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+        sock.sendall(dict_to_send+'|')
 
 
 
@@ -312,18 +333,18 @@ def handle(sock):
                 data = json.loads(data)
                 print("Operation: ", data['operation'])
                 if data['operation'] == 1 :
-                    signup_server(sock, data)
+                    signup_server(sock, data, data['operation'])
                 elif data['operation'] == 2 :
-                    login_server(sock, data)
+                    login_server(sock, data, data['operation'])
                     print("user_info afer login: ", user_info)
                 elif data['operation'] == 3 :
-                    logout_server(sock)
+                    logout_server(sock, data['operation'])
                     print("user_info after logout: ", user_info)
                     flag = False
                 elif data['operation'] == 4 :
-                    users_online_server(sock)
+                    users_online_server(sock, data['operation'])
                 elif data['operation'] == 5 :
-                    last_hour_login_users_server(sock)
+                    last_hour_login_users_server(sock, data['operation'])
 
             except:
                 print("Client malfunctioned. Logging out client: ", sock.getpeername())
@@ -333,7 +354,8 @@ def handle(sock):
             
         except IOError as err:
             print("IOError: ", err)
-            sock.close()
+            logout_server(sock)
+            print("user_info: ", user_info)
             flag = False
 
 
@@ -371,11 +393,11 @@ def serve_forever(host, port, childnum):
     PIDS = [create_child(index, listen_sock) for index in range(childnum)]
 
     # setup SIGTERM handler - in case the parent is killed
-    signal.signal(signal.SIGTERM, _cleanup)
+    # signal.signal(signal.SIGTERM, _cleanup)
 
     # parent never calls 'accept' - children do all the work
     # all parent does is sleeping :)
-    signal.pause()
+    # signal.pause()
 
 
 def main():
