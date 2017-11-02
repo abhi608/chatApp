@@ -17,6 +17,7 @@ def print_operation():
     print("4 | Who all are online")
     print("5 | Users logged in within last hour")
     print("6 | Send private message")
+    print("7 | Send broadcast message")
 
 def signup_client(sock, operation_selected):
     username=raw_input('Enter username: ')
@@ -47,6 +48,16 @@ def private_msg_client(sock, operation_selected):
     dict_to_send = {
         'operation': operation_selected,
         'username': username,
+        'message': message,
+        'timestamp': str(datetime.datetime.now()) 
+    }
+    dict_to_send = json.dumps(dict_to_send)
+    sock.sendall(dict_to_send)
+
+def broadcast_client(sock, operation_selected):
+    message = raw_input('Enter your message: ')
+    dict_to_send = {
+        'operation': operation_selected,
         'message': message,
         'timestamp': str(datetime.datetime.now()) 
     }
@@ -147,6 +158,8 @@ def request(host, port, child_num, con_num, bytes):
                                     last_hour_login_users_client(sock, operation_selected)
                                 elif operation_selected == 6:
                                     private_msg_client(sock, operation_selected)
+                                elif operation_selected == 7:
+                                    broadcast_client(sock, operation_selected)
                                 else:
                                     print("Please enter a valid operation number")
                             else:

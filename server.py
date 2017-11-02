@@ -107,6 +107,15 @@ def is_user_auth(username, password):
                 break
     return auth
 
+def get_all_username():
+    users = []
+    with open('./server_resources/user_pass.csv') as csvfile:
+        fieldnames = ['username', 'password']
+        reader = csv.DictReader(csvfile, fieldnames=fieldnames)
+        for row in reader:
+            users.append(row['username'])
+    return users
+
 def username_exists(username):
     with open('./server_resources/user_pass.csv') as csvfile:
         fieldnames = ['username', 'password']
@@ -360,54 +369,91 @@ def get_sock(username):
                 break
     return sock
 
-def private_msg_server(sock, data):
+def send_private_msg(sock, data):
     operation = data['operation']
-    if is_user_logged_in(sock) :
-        print("Inside is_user_logged_in")
-        rcpt_username = data['username']
-        message = data['message']
-        msg_timestamp = data['timestamp']
-        sender_username = get_username(sock)
-        if username_exists(rcpt_username) :
-            print("Inside username_exists")
-            if is_user_online(rcpt_username) :
-                # TODO
-                print("Inside is_user_online")
-                rcpt_sock = get_sock(rcpt_username)
-                print("RCPT_SOCK: ", rcpt_sock, rcpt_sock.getpeername())
-                dict_to_send = {
-                    'status': 2,
-                    'message': message,
-                    'operation': operation,
-                    'sender': sender_username,
-                    'timestamp': msg_timestamp
-                }
-                dict_to_send = json.dumps(dict_to_send)
-                rcpt_sock.sendall(dict_to_send+'|')
-            else :
-                #TODO
-                dict_to_send = {
-                    'status': 2,
-                    'message': message,
-                    'operation': operation,
-                    'sender': sender_username,
-                    'timestamp': msg_timestamp
-                }
-                filename = USER_FILES + rcpt_username + '.json'
-                data = None
-                with open(filename, 'r') as fp:
-                    data = json.load(fp)
-                data['to_be_delivered'].append(dict_to_send)
-                with open(filename, 'w+') as fp:
-                    json.dump(data, fp)
-        else :
+    rcpt_username = data['username']
+    message = data['message']
+    msg_timestamp = data['timestamp']
+    sender_username = get_username(sock)
+    if username_exists(rcpt_username) :
+        print("Inside username_exists")
+        if is_user_online(rcpt_username) :
+            # TODO
+            print("Inside is_user_online")
+            rcpt_sock = get_sock(rcpt_username)
+            print("RCPT_SOCK: ", rcpt_sock, rcpt_sock.getpeername())
             dict_to_send = {
-                'status': 0,
-                'message': 'no user by this username',
+                'status': 2,
+                'message': message,
+                'operation': operation,
+                'sender': sender_username,
+                'timestamp': msg_timestamp
+            }
+            dict_to_send = json.dumps(dict_to_send)
+            rcpt_sock.sendall(dict_to_send+'|')
+            dict_to_send = {
+                'status': 1,
+                'message': 'message successfully sent to ' + rcpt_username,
                 'operation': operation
             }
             dict_to_send = json.dumps(dict_to_send)
             sock.sendall(dict_to_send+'|')
+        else :
+            #TODO
+            dict_to_send = {
+                'status': 2,
+                'message': message,
+                'operation': operation,
+                'sender': sender_username,
+                'timestamp': msg_timestamp
+            }
+            filename = USER_FILES + rcpt_username + '.json'
+            data = None
+            with open(filename, 'r') as fp:
+                data = json.load(fp)
+            data['to_be_delivered'].append(dict_to_send)
+            with open(filename, 'w+') as fp:
+                json.dump(data, fp)
+            dict_to_send = {
+                'status': 1,
+                'message': 'message successfully sent to ' + rcpt_username,
+                'operation': operation
+            }
+            dict_to_send = json.dumps(dict_to_send)
+            sock.sendall(dict_to_send+'|')
+    else :
+        dict_to_send = {
+            'status': 0,
+            'message': 'no user by this username',
+            'operation': operation
+        }
+        dict_to_send = json.dumps(dict_to_send)
+        sock.sendall(dict_to_send+'|')
+
+def private_msg_server(sock, data):
+    operation = data['operation']
+    if is_user_logged_in(sock) :
+        print("Inside is_user_logged_in")
+        send_private_msg(sock, data)
+    else :
+        dict_to_send = {
+            'status': 0,
+            'message': 'you are not logged in',
+            'operation': operation
+        }
+        dict_to_send = json.dumps(dict_to_send)
+        sock.sendall(dict_to_send+'|')
+
+def broadcast_server(sock, data):
+    operation = data['operation']
+    if is_user_logged_in(sock) :
+        print("Inside is_user_logged_in")
+        users = get_all_username()
+        for i in range(0, len(users)):
+            if users[i] != get_username(sock) :
+                tmp_data = data
+                tmp_data['username'] = users[i]
+                send_private_msg(sock, tmp_data)
     else :
         dict_to_send = {
             'status': 0,
@@ -459,6 +505,8 @@ def handle(sock):
                     last_hour_login_users_server(sock, data['operation'])
                 elif data['operation'] == 6 :
                     private_msg_server(sock, data)
+                elif data['operation'] == 7 :
+                    broadcast_server(sock, data)
 
             except:
                 print("Client malfunctioned. Logging out client: ", sock.getpeername())
@@ -488,7 +536,8 @@ def child_loop(index, listen_sock):
 
 
 def create_child(index, listen_sock):
-    thread.start_new_thread(child_loop,(index, listen_sock))
+    for i in range(0, BACKLOG):
+        thread.start_new_thread(child_loop,(index, listen_sock))
     child_loop(index, listen_sock)
 
 def serve_forever(host, port, childnum):
@@ -506,13 +555,6 @@ def serve_forever(host, port, childnum):
     global PIDS
     PIDS = [create_child(index, listen_sock) for index in range(childnum)]
 
-    # setup SIGTERM handler - in case the parent is killed
-    # signal.signal(signal.SIGTERM, _cleanup)
-
-    # parent never calls 'accept' - children do all the work
-    # all parent does is sleeping :)
-    # signal.pause()
-
 
 def main():
     parser = optparse.OptionParser()
@@ -526,7 +568,7 @@ def main():
         help='Port. Default is 2000')
 
     parser.add_option(
-        '-n', '--child-num', dest='childnum', type='int', default=1,
+        '-n', '--child-num', dest='childnum', type='int', default=2,
         help='Number of children to prefork. Default is 10')
 
     options, args = parser.parse_args()
