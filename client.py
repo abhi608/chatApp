@@ -219,7 +219,7 @@ def main():
         )
     parser.add_option(
         '-t', '--con-num', dest='connum', type='int', default=1,
-        help='Number of connections to establish. Default is 5'
+        help='Number of connections to establish. Default is 1'
         )
     parser.add_option(
         '-b', '--bytes', dest='bytes', type='int', default=3000,

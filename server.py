@@ -683,7 +683,7 @@ def main():
 
     parser.add_option(
         '-n', '--child-num', dest='childnum', type='int', default=2,
-        help='Number of children to prefork. Default is 10')
+        help='Number of children to prefork. Default is 2')
 
     options, args = parser.parse_args()
 
