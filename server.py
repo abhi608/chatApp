@@ -44,7 +44,6 @@ def add_user(username, password):
     with open(filename, 'w+') as fp:
         json.dump(obj, fp)
 
-
 def signup_server(sock, data):
     username = data['username']
     password = data['password']
@@ -558,7 +557,6 @@ def unblock_user_server(sock, data):
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send+'|')
 
-
 def broadcast_server(sock, data):
     operation = data['operation']
     if is_user_logged_in(sock) :
@@ -639,7 +637,6 @@ def handle(sock):
             print("user_info: ", user_info)
             flag = False
 
-
 def child_loop(index, listen_sock):
     while True:
         try:
@@ -652,7 +649,6 @@ def child_loop(index, listen_sock):
                 raise
 
         handle(conn)
-
 
 def create_child(index, listen_sock):
     for i in range(0, BACKLOG):
@@ -673,7 +669,6 @@ def serve_forever(host, port, childnum):
     # prefork children
     global PIDS
     PIDS = [create_child(index, listen_sock) for index in range(childnum)]
-
 
 def main():
     parser = optparse.OptionParser()

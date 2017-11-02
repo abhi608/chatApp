@@ -112,7 +112,6 @@ def is_integer(operation):
     except ValueError:
         return False
 
-
 def request(host, port, child_num, con_num, bytes):
     # spawn child_num children processes
     for cnum in range(child_num):
@@ -206,7 +205,6 @@ def request(host, port, child_num, con_num, bytes):
 
         if pid == 0:
             break
-
 
 def main():
     parser = optparse.OptionParser()
