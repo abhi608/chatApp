@@ -4,10 +4,10 @@ import json
 import errno
 import socket
 import select
-import fcntl, os
+import datetime
 import optparse
 
-BYTES_READ = 3000
+BYTES_READ = 4096
 
 def print_operation():
     print("0 | List of options")
@@ -16,6 +16,7 @@ def print_operation():
     print("3 | Log out")
     print("4 | Who all are online")
     print("5 | Users logged in within last hour")
+    print("6 | Send private message")
 
 def signup_client(sock, operation_selected):
     username=raw_input('Enter username: ')
@@ -27,6 +28,7 @@ def signup_client(sock, operation_selected):
     }
     dict_to_send = json.dumps(dict_to_send)
     sock.sendall(dict_to_send)
+    print("SENT")
 
 def login_client(sock, operation_selected):
     username=raw_input('Enter username: ')
@@ -35,6 +37,18 @@ def login_client(sock, operation_selected):
         'operation': operation_selected,
         'username': username,
         'password': password
+    }
+    dict_to_send = json.dumps(dict_to_send)
+    sock.sendall(dict_to_send)
+
+def private_msg_client(sock, operation_selected):
+    username = raw_input('Enter username of the user: ')
+    message = raw_input('Enter your message: ')
+    dict_to_send = {
+        'operation': operation_selected,
+        'username': username,
+        'message': message,
+        'timestamp': str(datetime.datetime.now()) 
     }
     dict_to_send = json.dumps(dict_to_send)
     sock.sendall(dict_to_send)
@@ -104,6 +118,14 @@ def request(host, port, child_num, con_num, bytes):
                                     print('operation code: ' + str(cur_data['operation']))
                                     print('operation status: success')
                                     print('message: ' + cur_data['message'])
+                                    print('--------------------------------------------------------------------------------')
+                                elif cur_data['status'] == 2 :
+                                    print('--------------------------------------------------------------------------------')
+                                    print('MESSAGE RECEIVED')
+                                    print('operation code: ' + str(cur_data['operation']))
+                                    print('sender: ' + cur_data['sender'])
+                                    print('timestamp: ' + cur_data['timestamp'])
+                                    print('message: ' + cur_data['message'])
                                     print('--------------------------------------------------------------------------------')                          
                         elif x == sys.stdin:
                             operation_selected = sys.stdin.readline()
@@ -123,6 +145,8 @@ def request(host, port, child_num, con_num, bytes):
                                     users_online_client(sock, operation_selected)
                                 elif operation_selected == 5:
                                     last_hour_login_users_client(sock, operation_selected)
+                                elif operation_selected == 6:
+                                    private_msg_client(sock, operation_selected)
                                 else:
                                     print("Please enter a valid operation number")
                             else:
