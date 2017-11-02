@@ -37,7 +37,8 @@ def add_user(username, password):
 
     obj = {
         'signup_timestamp': str(datetime.datetime.now()),
-        'to_be_delivered': []
+        'to_be_delivered': [],
+        'blocked': []
     }
     filename = USER_FILES + username + '.json'
     with open(filename, 'w+') as fp:
@@ -369,6 +370,15 @@ def get_sock(username):
                 break
     return sock
 
+def is_blocked(rcpt_username, sender_username):
+    filename = USER_FILES + rcpt_username + '.json'
+    data = None
+    with open(filename, 'r') as fp:
+        data = json.load(fp)
+    if sender_username in data['blocked'] :
+        return True
+    return False
+
 def send_private_msg(sock, data):
     operation = data['operation']
     rcpt_username = data['username']
@@ -377,50 +387,60 @@ def send_private_msg(sock, data):
     sender_username = get_username(sock)
     if username_exists(rcpt_username) :
         print("Inside username_exists")
-        if is_user_online(rcpt_username) :
-            # TODO
-            print("Inside is_user_online")
-            rcpt_sock = get_sock(rcpt_username)
-            print("RCPT_SOCK: ", rcpt_sock, rcpt_sock.getpeername())
+        if is_blocked(rcpt_username, sender_username) :
+            #TODO
             dict_to_send = {
-                'status': 2,
-                'message': message,
-                'operation': operation,
-                'sender': sender_username,
-                'timestamp': msg_timestamp
-            }
-            dict_to_send = json.dumps(dict_to_send)
-            rcpt_sock.sendall(dict_to_send+'|')
-            dict_to_send = {
-                'status': 1,
-                'message': 'message successfully sent to ' + rcpt_username,
+                'status': 0,
+                'message': 'you are blocked by user ' + rcpt_username,
                 'operation': operation
             }
             dict_to_send = json.dumps(dict_to_send)
             sock.sendall(dict_to_send+'|')
         else :
-            #TODO
-            dict_to_send = {
-                'status': 2,
-                'message': message,
-                'operation': operation,
-                'sender': sender_username,
-                'timestamp': msg_timestamp
-            }
-            filename = USER_FILES + rcpt_username + '.json'
-            data = None
-            with open(filename, 'r') as fp:
-                data = json.load(fp)
-            data['to_be_delivered'].append(dict_to_send)
-            with open(filename, 'w+') as fp:
-                json.dump(data, fp)
-            dict_to_send = {
-                'status': 1,
-                'message': 'message successfully sent to ' + rcpt_username,
-                'operation': operation
-            }
-            dict_to_send = json.dumps(dict_to_send)
-            sock.sendall(dict_to_send+'|')
+            if is_user_online(rcpt_username) :
+                # TODO
+                print("Inside is_user_online")
+                rcpt_sock = get_sock(rcpt_username)
+                print("RCPT_SOCK: ", rcpt_sock, rcpt_sock.getpeername())
+                dict_to_send = {
+                    'status': 2,
+                    'message': message,
+                    'operation': operation,
+                    'sender': sender_username,
+                    'timestamp': msg_timestamp
+                }
+                dict_to_send = json.dumps(dict_to_send)
+                rcpt_sock.sendall(dict_to_send+'|')
+                dict_to_send = {
+                    'status': 1,
+                    'message': 'message successfully sent to ' + rcpt_username,
+                    'operation': operation
+                }
+                dict_to_send = json.dumps(dict_to_send)
+                sock.sendall(dict_to_send+'|')
+            else :
+                #TODO
+                dict_to_send = {
+                    'status': 2,
+                    'message': message,
+                    'operation': operation,
+                    'sender': sender_username,
+                    'timestamp': msg_timestamp
+                }
+                filename = USER_FILES + rcpt_username + '.json'
+                data = None
+                with open(filename, 'r') as fp:
+                    data = json.load(fp)
+                data['to_be_delivered'].append(dict_to_send)
+                with open(filename, 'w+') as fp:
+                    json.dump(data, fp)
+                dict_to_send = {
+                    'status': 1,
+                    'message': 'message successfully sent to ' + rcpt_username,
+                    'operation': operation
+                }
+                dict_to_send = json.dumps(dict_to_send)
+                sock.sendall(dict_to_send+'|')
     else :
         dict_to_send = {
             'status': 0,
@@ -443,6 +463,101 @@ def private_msg_server(sock, data):
         }
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send+'|')
+
+def block_user_server(sock, data):
+    username = data['username']
+    operation = data['operation']
+    rcpt_username = get_username(sock)
+    if is_user_logged_in(sock) :
+        print("Inside is_user_logged_in")
+        if username_exists(username) :
+            filename = USER_FILES + rcpt_username + '.json'
+            data = None
+            with open(filename, 'r') as fp:
+                data = json.load(fp)
+            if username not in data['blocked'] :
+                data['blocked'].append(username)
+                with open(filename, 'w+') as fp:
+                    json.dump(data, fp)
+                dict_to_send = {
+                    'status': 1,
+                    'message': username + ' blocked successfully',
+                    'operation': operation
+                }
+                dict_to_send = json.dumps(dict_to_send)
+                sock.sendall(dict_to_send+'|')
+            else :
+                dict_to_send = {
+                    'status': 0,
+                    'message': username + 'already blocked',
+                    'operation': operation
+                }
+                dict_to_send = json.dumps(dict_to_send)
+                sock.sendall(dict_to_send+'|')
+        else :
+            dict_to_send = {
+                'status': 0,
+                'message': username + ' does not exist',
+                'operation': operation
+            }
+            dict_to_send = json.dumps(dict_to_send)
+            sock.sendall(dict_to_send+'|')
+    else :
+        dict_to_send = {
+            'status': 0,
+            'message': 'you are not logged in',
+            'operation': operation
+        }
+        dict_to_send = json.dumps(dict_to_send)
+        sock.sendall(dict_to_send+'|')
+
+def unblock_user_server(sock, data):
+    username = data['username']
+    operation = data['operation']
+    rcpt_username = get_username(sock)
+    if is_user_logged_in(sock) :
+        print("Inside is_user_logged_in")
+        if username_exists(username) :
+            filename = USER_FILES + rcpt_username + '.json'
+            data = None
+            with open(filename, 'r') as fp:
+                data = json.load(fp)
+            if username in data['blocked'] :
+                data['blocked'].remove(username)
+                with open(filename, 'w+') as fp:
+                    json.dump(data, fp)
+                dict_to_send = {
+                    'status': 1,
+                    'message': username + ' unblocked successfully',
+                    'operation': operation
+                }
+                dict_to_send = json.dumps(dict_to_send)
+                sock.sendall(dict_to_send+'|')
+            else :
+                dict_to_send = {
+                    'status': 0,
+                    'message': username + ' already not blocked',
+                    'operation': operation
+                }
+                dict_to_send = json.dumps(dict_to_send)
+                sock.sendall(dict_to_send+'|')
+        else :
+            dict_to_send = {
+                'status': 0,
+                'message': username + ' does not exist',
+                'operation': operation
+            }
+            dict_to_send = json.dumps(dict_to_send)
+            sock.sendall(dict_to_send+'|')
+    else :
+        dict_to_send = {
+            'status': 0,
+            'message': 'you are not logged in',
+            'operation': operation
+        }
+        dict_to_send = json.dumps(dict_to_send)
+        sock.sendall(dict_to_send+'|')
+
 
 def broadcast_server(sock, data):
     operation = data['operation']
@@ -507,6 +622,10 @@ def handle(sock):
                     private_msg_server(sock, data)
                 elif data['operation'] == 7 :
                     broadcast_server(sock, data)
+                elif data['operation'] == 8 :
+                    block_user_server(sock, data)
+                elif data['operation'] == 9 :
+                    unblock_user_server(sock, data)
 
             except:
                 print("Client malfunctioned. Logging out client: ", sock.getpeername())
