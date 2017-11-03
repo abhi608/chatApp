@@ -125,12 +125,13 @@ def request(host, port, child_num, con_num, bytes):
                 input = [sock, sys.stdin]
                 flag = True
                 print_operation()
+                data = ''
                 while flag:
                     print("Enter operation number")
                     inputready, outputready, exceptready = select.select(input, [], [])
                     for x in inputready:
                         if x == sock:
-                            data = sock.recv(BYTES_READ)
+                            data = data + sock.recv(BYTES_READ)
                             if data == '' :
                                 flag = False
                                 break
@@ -156,7 +157,11 @@ def request(host, port, child_num, con_num, bytes):
                                     print('sender: ' + cur_data['sender'])
                                     print('timestamp: ' + cur_data['timestamp'])
                                     print('message: ' + cur_data['message'])
-                                    print('--------------------------------------------------------------------------------')                          
+                                    print('--------------------------------------------------------------------------------')
+                            if data[-1] == '|' :
+                                data = ''
+                            else :
+                                data = data[-1]
                         elif x == sys.stdin:
                             operation_selected = sys.stdin.readline()
                             if is_integer(operation_selected) :

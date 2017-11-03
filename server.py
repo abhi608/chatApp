@@ -682,8 +682,8 @@ def main():
         help='Port. Default is 2000')
 
     parser.add_option(
-        '-n', '--child-num', dest='childnum', type='int', default=2,
-        help='Number of children to prefork. Default is 2')
+        '-n', '--child-num', dest='childnum', type='int', default=1,
+        help='Number of children to prefork. Default is 1')
 
     options, args = parser.parse_args()
 
