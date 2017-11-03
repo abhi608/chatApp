@@ -648,10 +648,11 @@ def child_loop(index, listen_sock):
 
         handle(conn)
 
-def create_child(index, listen_sock):
-    for i in range(0, BACKLOG):
-        thread.start_new_thread(child_loop,(index, listen_sock))
-    child_loop(index, listen_sock)
+def create_child(index, listen_sock, childnum):
+    global PIDS
+    # for i in range(childnum):
+    #     thread.start_new_thread(child_loop,(index, listen_sock))
+    PIDS = [thread.start_new_thread(child_loop, (index, listen_sock)) for i in range(childnum)]
 
 def serve_forever(host, port, childnum):
     # create, bind, listen
@@ -665,8 +666,9 @@ def serve_forever(host, port, childnum):
     print 'Listening on port %d ...' % port
 
     # prefork children
-    global PIDS
-    PIDS = [create_child(index, listen_sock) for index in range(childnum)]
+    # global PIDS
+    # PIDS = [create_child(index, listen_sock) for index in range(childnum)]
+    create_child(index, listen_sock, childnum)
 
 def main():
     parser = optparse.OptionParser()
