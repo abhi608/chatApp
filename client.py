@@ -31,7 +31,6 @@ def signup_client(sock, operation_selected):
     }
     dict_to_send = json.dumps(dict_to_send)
     sock.sendall(dict_to_send)
-    print("SENT")
 
 def login_client(sock, operation_selected):
     username=raw_input('Enter username: ')
