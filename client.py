@@ -112,7 +112,7 @@ def is_integer(operation):
     except ValueError:
         return False
 
-def request(host, port, child_num, con_num, bytes):
+def request(host, port, child_num, con_num):
     # spawn child_num children processes
     for cnum in range(child_num):
 
@@ -226,10 +226,6 @@ def main():
         '-t', '--con-num', dest='connum', type='int', default=1,
         help='Number of connections to establish. Default is 1'
         )
-    parser.add_option(
-        '-b', '--bytes', dest='bytes', type='int', default=3000,
-        help='Number of bytes to request. Default is 3000'
-        )
 
     options, args = parser.parse_args()
 
@@ -238,7 +234,7 @@ def main():
         sys.exit(1)
 
     request(options.host, options.port,
-            options.childnum, options.connum, options.bytes)
+            options.childnum, options.connum)
 
 if __name__ == '__main__':
     main()

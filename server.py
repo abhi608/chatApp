@@ -8,7 +8,7 @@ import thread
 import optparse
 import datetime
 
-BACKLOG = 5
+BACKLOG = 8
 PIDS = []  # stores pids of all preforked children
 BYTES_READ = 4096
 BLOCK_ATTEMPTS = 3
@@ -314,7 +314,6 @@ def users_online_server(sock, operation):
         }
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send+'|')
-        sock.sendall(dict_to_send+'|')
     else :
         dict_to_send = {
             'status': 0,
@@ -322,7 +321,6 @@ def users_online_server(sock, operation):
             'operation': operation
         }
         dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send+'|')
         sock.sendall(dict_to_send+'|')
 
 def last_hour_login_users_server(sock, operation):
