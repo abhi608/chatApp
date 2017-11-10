@@ -434,7 +434,7 @@ def send_private_msg(sock, data):
                     json.dump(data, fp)
                 dict_to_send = {
                     'status': 1,
-                    'message': 'message successfully sent to ' + rcpt_username,
+                    'message': rcpt_username + ' not online. Message will be sent when ' + rcpt_username + ' comes online.',
                     'operation': operation
                 }
                 dict_to_send = json.dumps(dict_to_send)
