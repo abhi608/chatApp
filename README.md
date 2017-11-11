@@ -56,7 +56,6 @@ A file './server_resources/user_pass.csv' maintains username and password for al
 			'''serve_forever(host, port, childnum)''' is helper function to create socket.<br/>&emsp;&emsp;&emsp;
 			''' block_user_server(sock, data)'''  function to block user.<br/>&emsp;&emsp;&emsp;
 			'''unblock_user_server(sock, data)''' function to unblock user.<br/><br/>&emsp;
-
 	Client side:<br/>&emsp;&emsp;
 		Following helper function are used for operations:<br/>&emsp;&emsp;&emsp;
 			'''print_operation()''' is  helper function to print operations.<br/>&emsp;&emsp;&emsp;
