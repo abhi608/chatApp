@@ -1,3 +1,9 @@
+###############################################################################
+#                                                                             #
+#   ChatApp: Server Script                                                    #
+#                                                                             #
+###############################################################################
+
 import os
 import csv
 import json
@@ -9,16 +15,17 @@ import optparse
 import datetime
 from server_helpers import *
 
-BACKLOG = 8
+BACKLOG = 8 # Length of request queue
 PIDS = []  # stores pids of all preforked children
 BYTES_READ = 4096
 BLOCK_ATTEMPTS = 3
 TMP_BLOCK_TIME = 60 #sec
 ONLINE_TIME = 60 * 60 #1 hour
-USER_FILES = './server_resources/user_data/'
+USER_FILES = './server_resources/user_data/'    # File to store persistent data
 
 user_info = {}
 
+# Local helper function to check user already exists in database
 def user_already_exists(username):
     with open('./server_resources/user_pass.csv') as csvfile:
         fieldnames = ['username', 'password']
@@ -30,6 +37,7 @@ def user_already_exists(username):
                 break
     return exists
 
+# Local helper function to add user to the database
 def add_user(username, password):
     with open('./server_resources/user_pass.csv', 'a') as csvfile:
         fieldnames = ['username', 'password']
@@ -45,6 +53,7 @@ def add_user(username, password):
     with open(filename, 'w+') as fp:
         json.dump(obj, fp)
 
+# Server helper function to signup users
 def signup_server(sock, data):
     username = data['username']
     password = data['password']
@@ -77,6 +86,7 @@ def signup_server(sock, data):
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send+'|')
 
+# Local helper function to check if user is blocked
 def is_user_blocked_tmp(sock, username):
     if username in user_info and 'block' in user_info[username] :
         for i, j in enumerate(user_info[username]['block']) :
@@ -91,12 +101,14 @@ def is_user_blocked_tmp(sock, username):
                             user_info[username]['block'][i]['blocked'] = False
     return False
 
+# Local helper function to check if user is already logged in
 def is_user_already_logged(username):
     if username in user_info and 'online' in user_info[username] :
         if user_info[username]['online']:
             return True
     return False
 
+# Local helper function to check if user is authentic
 def is_user_auth(username, password):
     with open('./server_resources/user_pass.csv') as csvfile:
         fieldnames = ['username', 'password']
@@ -108,6 +120,7 @@ def is_user_auth(username, password):
                 break
     return auth
 
+# Local helper function to fetch all usernames
 def get_all_username():
     users = []
     with open('./server_resources/user_pass.csv') as csvfile:
@@ -117,6 +130,7 @@ def get_all_username():
             users.append(row['username'])
     return users
 
+# Local helper function to check if the username exists
 def username_exists(username):
     with open('./server_resources/user_pass.csv') as csvfile:
         fieldnames = ['username', 'password']
@@ -126,6 +140,7 @@ def username_exists(username):
                 return True
     return False
 
+# Local helper function to check if the port is already in use
 def ip_port_already_used(sock):
     for i in user_info :
         if 'id' in user_info[i] :
@@ -133,6 +148,7 @@ def ip_port_already_used(sock):
                 return True
     return False
 
+# Server helper function for login
 def login_server(sock, data):
     username = data['username']
     password = data['password']
@@ -257,6 +273,7 @@ def login_server(sock, data):
                 dict_to_send = json.dumps(dict_to_send)
                 sock.sendall(dict_to_send+'|')
 
+# Server helper function for logout
 def logout_server(sock, operation=-1) :
     for i in user_info :
         if 'id' in user_info[i] :
@@ -279,6 +296,7 @@ def logout_server(sock, operation=-1) :
     sock.sendall(dict_to_send+'|')
     sock.close()
 
+# Local helper function to check if user is logged in
 def is_user_logged_in(sock):
     for i in user_info :
         if 'id' in user_info[i] :
@@ -286,6 +304,7 @@ def is_user_logged_in(sock):
                 return True
     return False
 
+# Local helper function to get all users online
 def get_all_users_online():
     users_online = []
     for i in user_info :
@@ -294,6 +313,7 @@ def get_all_users_online():
                 users_online.append(i)
     return users_online
 
+# Local helper function to get all last hour logged in users
 def get_last_hour_login():
     users_online = []
     for i in user_info :
@@ -305,6 +325,7 @@ def get_last_hour_login():
                     users_online.append(i)
     return users_online
 
+# Server helper function to check users online
 def users_online_server(sock, operation):
     if is_user_logged_in(sock) :
         users_online = get_all_users_online() #array
@@ -324,6 +345,7 @@ def users_online_server(sock, operation):
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send+'|')
 
+# Server helper function to check last hour logged in users
 def last_hour_login_users_server(sock, operation):
     if is_user_logged_in(sock) :
         users_online = get_last_hour_login() #array
@@ -343,6 +365,7 @@ def last_hour_login_users_server(sock, operation):
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send+'|')
 
+# Local helper function to check if user is online
 def is_user_online(username):
     if username in user_info :
         if 'online' in user_info[username] :
@@ -350,6 +373,7 @@ def is_user_online(username):
                 return True
     return False
 
+# Local helper function to get username
 def get_username(sock):
     username = None
     for i in user_info :
@@ -359,6 +383,7 @@ def get_username(sock):
                 break
     return username
 
+# Local helper function to get socket
 def get_sock(username):
     sock = None
     for i in user_info :
@@ -368,6 +393,7 @@ def get_sock(username):
                 break
     return sock
 
+# Local helper function to check if a user is blocked for sender
 def is_blocked(rcpt_username, sender_username):
     filename = USER_FILES + rcpt_username + '.json'
     data = None
@@ -377,6 +403,7 @@ def is_blocked(rcpt_username, sender_username):
         return True
     return False
 
+# Local helper function to send private message
 def send_private_msg(sock, data):
     operation = data['operation']
     rcpt_username = data['username']
@@ -448,6 +475,7 @@ def send_private_msg(sock, data):
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send+'|')
 
+# Server helper function to send private message
 def private_msg_server(sock, data):
     operation = data['operation']
     if is_user_logged_in(sock) :
@@ -462,6 +490,7 @@ def private_msg_server(sock, data):
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send+'|')
 
+# Server helper function to block user
 def block_user_server(sock, data):
     username = data['username']
     operation = data['operation']
@@ -509,6 +538,7 @@ def block_user_server(sock, data):
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send+'|')
 
+# Server helper function to unblock user
 def unblock_user_server(sock, data):
     username = data['username']
     operation = data['operation']
@@ -556,6 +586,7 @@ def unblock_user_server(sock, data):
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send+'|')
 
+# Server helper function for broadcast
 def broadcast_server(sock, data):
     operation = data['operation']
     if is_user_logged_in(sock) :
@@ -575,6 +606,7 @@ def broadcast_server(sock, data):
         dict_to_send = json.dumps(dict_to_send)
         sock.sendall(dict_to_send+'|')
 
+# Local helper function to send stored messages when user comes online
 def send_stored_msg(sock, data):
     username = data['username']
     password = data['password']
@@ -591,6 +623,7 @@ def send_stored_msg(sock, data):
     with open(filename, 'w+') as fp:
         json.dump(data, fp)
 
+# Main handler for incoming data
 def handle(sock):
     # read a line that tells us how many bytes to write back
 
@@ -636,6 +669,7 @@ def handle(sock):
             print("user_info: ", user_info)
             flag = False
 
+# Thread to make connections and serve client requests
 def child_loop(index, listen_sock):
     while True:
         try:
@@ -649,11 +683,13 @@ def child_loop(index, listen_sock):
 
         handle(conn)
 
+# Local helper function to launch threads 
 def create_child(index, listen_sock):
     for i in range(0, BACKLOG):
         thread.start_new_thread(child_loop,(index, listen_sock))
     child_loop(index, listen_sock)
 
+# Local helper function to create socket
 def serve_forever(host, port, childnum):
     # create, bind, listen
     listen_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -670,6 +706,7 @@ def serve_forever(host, port, childnum):
     PIDS = [create_child(index, listen_sock) for index in range(childnum)]
 
 def main():
+    # Command line option parsing
     parser = optparse.OptionParser()
     parser.add_option(
         '-i', '--host', dest='host', default='0.0.0.0',
