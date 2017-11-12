@@ -8,12 +8,24 @@ import os
 import sys
 import json
 import errno
+import base64
 import socket
 import select
 import datetime
 import optparse
+from Crypto.Cipher import AES
 
 BYTES_READ = 4096
+key = '1234567890123456' # key to encode the client password
+
+# Key to encode the password of client
+def encode(key, clear):
+    enc = []
+    for i in range(len(clear)):
+        key_c = key[i % len(key)]
+        enc_c = chr((ord(clear[i]) + ord(key_c)) % 256)
+        enc.append(enc_c)
+    return base64.urlsafe_b64encode("".join(enc))
 
 # Client helper function to print operations
 def print_operation():
@@ -35,82 +47,82 @@ def signup_client(sock, operation_selected):
     dict_to_send = {
         'operation': operation_selected,
         'username': username,
-        'password': password
+        'password': encode(key, password)
     }
     dict_to_send = json.dumps(dict_to_send)
     sock.sendall(dict_to_send)
 
 # Client helper function for login
-    def login_client(sock, operation_selected):
-        username=raw_input('Enter username: ')
-        password = raw_input('Enter password: ')
-        dict_to_send = {
-            'operation': operation_selected,
-            'username': username,
-            'password': password
-        }
-        dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+def login_client(sock, operation_selected):
+    username=raw_input('Enter username: ')
+    password = raw_input('Enter password: ')
+    dict_to_send = {
+        'operation': operation_selected,
+        'username': username,
+        'password': encode(key, password)
+    }
+    dict_to_send = json.dumps(dict_to_send)
+    sock.sendall(dict_to_send)
 
-    # Client helper function for private messaging
-    def private_msg_client(sock, operation_selected):
-        username = raw_input('Enter username of the user: ')
-        message = raw_input('Enter your message: ')
-        dict_to_send = {
-            'operation': operation_selected,
-            'username': username,
-            'message': message,
-            'timestamp': str(datetime.datetime.now()) 
-        }
-        dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+# Client helper function for private messaging
+def private_msg_client(sock, operation_selected):
+    username = raw_input('Enter username of the user: ')
+    message = raw_input('Enter your message: ')
+    dict_to_send = {
+        'operation': operation_selected,
+        'username': username,
+        'message': message,
+        'timestamp': str(datetime.datetime.now()) 
+    }
+    dict_to_send = json.dumps(dict_to_send)
+    sock.sendall(dict_to_send)
 
-    # Client helper function for broadcast
-    def broadcast_client(sock, operation_selected):
-        message = raw_input('Enter your message: ')
-        dict_to_send = {
-            'operation': operation_selected,
-            'message': message,
-            'timestamp': str(datetime.datetime.now()) 
-        }
-        dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+# Client helper function for broadcast
+def broadcast_client(sock, operation_selected):
+    message = raw_input('Enter your message: ')
+    dict_to_send = {
+        'operation': operation_selected,
+        'message': message,
+        'timestamp': str(datetime.datetime.now()) 
+    }
+    dict_to_send = json.dumps(dict_to_send)
+    sock.sendall(dict_to_send)
 
-    # Client helper function to block user
-    def block_user_client(sock, operation_selected):
-        username = raw_input('Enter username to be blocked: ')
-        dict_to_send = {
-            'operation': operation_selected,
-            'username': username,
-        }
-        dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+# Client helper function to block user
+def block_user_client(sock, operation_selected):
+    username = raw_input('Enter username to be blocked: ')
+    dict_to_send = {
+        'operation': operation_selected,
+        'username': username,
+    }
+    dict_to_send = json.dumps(dict_to_send)
+    sock.sendall(dict_to_send)
 
-    # Client helper function to unblock user
-    def unblock_user_client(sock, operation_selected):
-        username = raw_input('Enter username to be unblocked: ')
-        dict_to_send = {
-            'operation': operation_selected,
-            'username': username,
-        }
-        dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+# Client helper function to unblock user
+def unblock_user_client(sock, operation_selected):
+    username = raw_input('Enter username to be unblocked: ')
+    dict_to_send = {
+        'operation': operation_selected,
+        'username': username,
+    }
+    dict_to_send = json.dumps(dict_to_send)
+    sock.sendall(dict_to_send)
 
-    # Client helper function for logout
-    def logout_client(sock, operation_selected) :
-        dict_to_send = {
-            'operation': operation_selected,
-        }
-        dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
-        
-    # Client helper function to check users online
-    def users_online_client(sock, operation_selected):
-        dict_to_send = {
-            'operation': operation_selected,
-        }
-        dict_to_send = json.dumps(dict_to_send)
-        sock.sendall(dict_to_send)
+# Client helper function for logout
+def logout_client(sock, operation_selected) :
+    dict_to_send = {
+        'operation': operation_selected,
+    }
+    dict_to_send = json.dumps(dict_to_send)
+    sock.sendall(dict_to_send)
+    
+# Client helper function to check users online
+def users_online_client(sock, operation_selected):
+    dict_to_send = {
+        'operation': operation_selected,
+    }
+    dict_to_send = json.dumps(dict_to_send)
+    sock.sendall(dict_to_send)
 
 # Client helper function to check last hour logged in users
 def last_hour_login_users_client(sock, operation_selected):

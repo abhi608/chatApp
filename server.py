@@ -8,12 +8,12 @@ import os
 import csv
 import json
 import errno
+import base64
 import signal
 import socket
 import thread
 import optparse
 import datetime
-from server_helpers import *
 
 BACKLOG = 8 # Length of request queue
 PIDS = []  # stores pids of all preforked children
@@ -24,6 +24,18 @@ ONLINE_TIME = 60 * 60 #1 hour
 USER_FILES = './server_resources/user_data/'    # File to store persistent data
 
 user_info = {}
+
+key = '1234567890123456'  # To decode the hashed the password
+
+# This function decodes the encoded password sent by client
+def decode(key, enc):
+    dec = []
+    enc = base64.urlsafe_b64decode(enc)
+    for i in range(len(enc)):
+        key_c = key[i % len(key)]
+        dec_c = chr((256 + ord(enc[i]) - ord(key_c)) % 256)
+        dec.append(dec_c)
+    return "".join(dec)
 
 # Local helper function to check user already exists in database
 def user_already_exists(username):
@@ -56,9 +68,9 @@ def add_user(username, password):
 # Server helper function to signup users
 def signup_server(sock, data):
     username = data['username']
-    password = data['password']
+    password = decode(key, str(data['password']))
     operation = data['operation']
-    print("TEST")
+    print("TEST", password)
     if ip_port_already_used(sock) :
         dict_to_send = {
             'status': 0,
@@ -151,7 +163,7 @@ def ip_port_already_used(sock):
 # Server helper function for login
 def login_server(sock, data):
     username = data['username']
-    password = data['password']
+    password = decode(key, str(data['password']))
     operation = data['operation']
     if username_exists(username) == False :
         dict_to_send = {
