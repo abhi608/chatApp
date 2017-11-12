@@ -13,12 +13,11 @@ import socket
 import select
 import datetime
 import optparse
-from Crypto.Cipher import AES
 
 BYTES_READ = 4096
 key = '1234567890123456' # key to encode the client password
 
-# Key to encode the password of client
+# Key to encode the password of Client
 def encode(key, clear):
     enc = []
     for i in range(len(clear)):
